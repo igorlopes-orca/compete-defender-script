@@ -18,3 +18,14 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/defender_savings"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = ["-v", "--tb=short", "--strict-markers"]
+log_cli_level = "WARNING"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]

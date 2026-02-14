@@ -47,6 +47,7 @@ def calculate_account_costs(
     Only includes services that are enabled (Standard) in the API response
     AND have actual resources. Savings = disabling that service entirely.
     """
+    resource_counts = {**resource_counts}  # avoid mutating caller's dict
     costs: list[CostLineItem] = []
     savings: list[SavingsLineItem] = []
     total_monthly = 0.0
