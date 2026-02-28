@@ -10,6 +10,9 @@ wheels/
 *.whl
 .eggs/
 
+# Claude files
+.claude/
+
 # Virtual environments
 .venv/
 venv/
