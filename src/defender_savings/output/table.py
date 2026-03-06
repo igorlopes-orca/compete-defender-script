@@ -17,7 +17,7 @@ def print_cost_table(summaries: list[AccountSummary]) -> None:
     print("\n=== Defender for Cloud - Cost Summary ===\n")
 
     headers = ["Cloud Account", "Module", "Tier", "Qty", "Unit Price", "Monthly", "Annual"]
-    widths = [24, 30, 8, 5, 12, 12, 14]
+    widths = [38, 30, 8, 5, 12, 12, 14]
 
     header_line = _COL_SEP.join(h.ljust(w) for h, w in zip(headers, widths))
     sep_line = _COL_SEP.join(_HEADER_SEP * w for w in widths)
@@ -28,7 +28,7 @@ def print_cost_table(summaries: list[AccountSummary]) -> None:
     grand_annual = 0.0
 
     for summary in summaries:
-        account_label = summary.cloud_account[:24]
+        account_label = summary.cloud_account[:38]
         for cost in summary.costs:
             row = [
                 account_label.ljust(widths[0]),
@@ -68,7 +68,7 @@ def print_savings_table(summaries: list[AccountSummary]) -> None:
     print("\n=== Savings by Disabling Service ===\n")
 
     headers = ["Cloud Account", "Module", "Saving/mo", "Saving/yr"]
-    widths = [24, 30, 12, 14]
+    widths = [38, 30, 12, 14]
 
     header_line = _COL_SEP.join(h.ljust(w) for h, w in zip(headers, widths))
     sep_line = _COL_SEP.join(_HEADER_SEP * w for w in widths)

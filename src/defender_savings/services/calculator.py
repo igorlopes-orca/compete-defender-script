@@ -76,7 +76,7 @@ def calculate_account_costs(
         monthly = pricing["unit_price"] * count
 
         costs.append(CostLineItem(
-            cloud_account=config.cloud_account_name,
+            cloud_account=config.subscription_id or config.cloud_account_name,
             module=module,
             description=pricing["description"],
             tier=tier,
@@ -89,7 +89,7 @@ def calculate_account_costs(
         total_monthly += monthly
 
         savings.append(SavingsLineItem(
-            cloud_account=config.cloud_account_name,
+            cloud_account=config.subscription_id or config.cloud_account_name,
             module=module,
             description=pricing["description"],
             monthly_saving=monthly,
@@ -106,7 +106,7 @@ def calculate_account_costs(
     )
 
     return AccountSummary(
-        cloud_account=config.cloud_account_name,
+        cloud_account=config.subscription_id or config.cloud_account_name,
         costs=costs,
         savings=savings,
         total_monthly=total_monthly,
