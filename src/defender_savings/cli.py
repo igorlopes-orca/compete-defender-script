@@ -11,8 +11,8 @@ from defender_savings.api.resources import (
     list_storage_accounts,
     list_virtual_machines,
 )
-from defender_savings.output.table import print_cost_table, print_savings_table
-from defender_savings.services.calculator import AccountSummary, calculate_account_costs
+from defender_savings.output.table import print_cost_table, print_module_breakdown_table, print_savings_table, print_subscription_breakdown_table
+from defender_savings.services.calculator import AccountSummary, aggregate_by_module, calculate_account_costs
 from defender_savings.services.mapper import ResourceDefenderMap
 
 logger = logging.getLogger(__name__)
@@ -63,8 +63,24 @@ def main() -> None:
     counts_by_account = mapper.count_resources_per_account(vms, apps, storage, key_vaults, container_hosts)
 
     # 4. Calculate costs per account
-    summaries: list[AccountSummary] = []
+    # Azure Defender for Cloud is configured per subscription — one config per
+    # subscription. Orca should never return duplicates, but if it does we warn
+    # and keep the first record to avoid double-counting costs.
+    seen: dict[str, DefenderConfig] = {}
     for config in defender_configs:
+        if config.cloud_account_name in seen:
+            logger.warning(
+                "Duplicate DefenderConfig for account %r (subscription %s) — "
+                "keeping first record, ignoring subsequent. "
+                "This is unexpected; verify data quality in Orca.",
+                config.cloud_account_name,
+                config.subscription_id or "unknown",
+            )
+            continue
+        seen[config.cloud_account_name] = config
+
+    summaries: list[AccountSummary] = []
+    for config in seen.values():
         resource_counts = counts_by_account.get(config.cloud_account_name, {})
         summary = calculate_account_costs(config, resource_counts)
         summaries.append(summary)
@@ -72,6 +88,8 @@ def main() -> None:
     # 5. Output tables
     print_cost_table(summaries)
     print_savings_table(summaries)
+    print_subscription_breakdown_table(summaries)
+    print_module_breakdown_table(aggregate_by_module(summaries))
 
 
 if __name__ == "__main__":

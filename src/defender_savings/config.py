@@ -24,6 +24,57 @@ logging.basicConfig(
 # page, and update unit_price / unit as needed. The "api_key" field maps
 # each entry to the ServicesPricing key returned by the Orca API. The
 # "count_key" maps to the resource count produced by the mapper.
+#
+# ---------------------------------------------------------------------------
+# BILLING ASSUMPTIONS & KNOWN LIMITATIONS
+# ---------------------------------------------------------------------------
+#
+# WHAT WE ASSUME / INTENTIONAL BEHAVIOUR
+#
+#   Servers plan:
+#     - The API returns "Standard" for both P1 ($5.02) and P2 ($14.60) without
+#       distinguishing them. We always assume Plan 2 ($14.60). If the customer
+#       is on Plan 1 the estimate will be ~3× too high for this service.
+#
+#   Containers:
+#     - Priced at $6.8693/vCore/mo (Azure list price).
+#     - vCPU count comes from VCpuCount in the Orca response.
+#     - A VM that hosts containers is counted for BOTH Defender for Servers
+#       AND Defender for Containers. This matches Azure's actual billing.
+#
+#   Savings:
+#     - Calculated as the full monthly cost of disabling each Standard service
+#       entirely. Only services with at least 1 resource appear.
+#
+# KNOWN UNDERCOUNTING (intentional — we prefer to underestimate)
+#
+#   CSPM billable:
+#     - We count VMs + Storage Accounts only.
+#     - Azure also bills App Services, SQL, OSS DBs, and serverless functions
+#       as CSPM billable resources. Those are excluded here.
+#
+#   Container hosts without VCpuCount:
+#     - The API query filters to VMs where VCpuCount *exists*. Container hosts
+#       missing that field are not counted. The default-4 fallback in the model
+#       only fires for invalid values, not for records filtered at query time.
+#
+#   Services with no API query (always show $0):
+#     - CosmosDbs, SqlServers, SqlServerVirtualMachines,
+#       OpenSourceRelationalDatabases are in the pricing table for reference
+#       but have no Orca query backing them. They are silently skipped (count=0).
+#
+# POTENTIAL OVERCOUNT RISKS (mitigated in code)
+#
+#   Duplicate subscription records:
+#     - Orca should never return multiple AzureDefenderForCloud records for the
+#       same subscription (Defender is a per-subscription setting in Azure).
+#       If it does, cli.py logs a WARNING and keeps the first record to prevent
+#       double-counting.
+#
+#   Resource account mismatch:
+#     - Resources whose cloud_account_name doesn't match any DefenderConfig are
+#       silently dropped. No inflation risk; may cause undercounting instead.
+#
 # ---------------------------------------------------------------------------
 
 PRICING: dict[str, dict] = {

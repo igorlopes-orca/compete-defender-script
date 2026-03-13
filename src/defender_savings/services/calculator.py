@@ -38,6 +38,17 @@ class AccountSummary(BaseModel):
     potential_annual_saving: float
 
 
+class ModuleBreakdown(BaseModel):
+    module: str
+    description: str
+    subscription_count: int
+    total_qty: int
+    unit_price: float
+    unit: str
+    monthly_cost: float
+    annual_cost: float
+
+
 def calculate_account_costs(
     config: DefenderConfig,
     resource_counts: dict[str, int],
@@ -114,3 +125,43 @@ def calculate_account_costs(
         potential_monthly_saving=total_saving,
         potential_annual_saving=total_saving * 12,
     )
+
+
+def aggregate_by_module(summaries: list[AccountSummary]) -> list[ModuleBreakdown]:
+    """Aggregate costs across all accounts, grouped by module."""
+    acc: dict[str, dict] = {}
+
+    for summary in summaries:
+        for cost in summary.costs:
+            if cost.module not in acc:
+                acc[cost.module] = {
+                    "description": cost.description,
+                    "unit_price": cost.unit_price,
+                    "unit": cost.unit,
+                    "subscription_count": 0,
+                    "total_qty": 0,
+                    "monthly_cost": 0.0,
+                    "annual_cost": 0.0,
+                    "seen_accounts": set(),
+                }
+            entry = acc[cost.module]
+            entry["seen_accounts"].add(cost.cloud_account)
+            entry["total_qty"] += cost.count
+            entry["monthly_cost"] += cost.monthly_cost
+            entry["annual_cost"] += cost.annual_cost
+
+    breakdowns = [
+        ModuleBreakdown(
+            module=module,
+            description=entry["description"],
+            subscription_count=len(entry["seen_accounts"]),
+            total_qty=entry["total_qty"],
+            unit_price=entry["unit_price"],
+            unit=entry["unit"],
+            monthly_cost=entry["monthly_cost"],
+            annual_cost=entry["annual_cost"],
+        )
+        for module, entry in acc.items()
+    ]
+    breakdowns.sort(key=lambda x: x.monthly_cost, reverse=True)
+    return breakdowns
